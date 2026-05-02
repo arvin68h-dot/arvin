@@ -14,7 +14,7 @@
     "@codeengine/tool": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.8.0",
+    "typescript": "^6.0.3",
     "@types/node": "^22.0.0"
   }
 }
