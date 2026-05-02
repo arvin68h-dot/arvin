@@ -30,8 +30,8 @@ importers:
         specifier: ^4.19.0
         version: 4.21.0
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
       vitest:
         specifier: ^3.1.0
         version: 3.2.4(@types/node@22.19.17)(tsx@4.21.0)
@@ -68,8 +68,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/checkpoint:
     dependencies:
@@ -84,8 +84,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/compaction:
     dependencies:
@@ -97,8 +97,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/core:
     devDependencies:
@@ -106,8 +106,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/diff:
     dependencies:
@@ -119,8 +119,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/engine:
     dependencies:
@@ -138,8 +138,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/lsp:
     dependencies:
@@ -151,8 +151,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/mcp:
     dependencies:
@@ -167,8 +167,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/skill:
     dependencies:
@@ -180,8 +180,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/storage:
     dependencies:
@@ -196,8 +196,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/tasks:
     dependencies:
@@ -209,8 +209,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
   packages/tool:
     dependencies:
@@ -228,8 +228,8 @@ importers:
         specifier: ^22.0.0
         version: 22.19.17
       typescript:
-        specifier: ^5.8.0
-        version: 5.9.3
+        specifier: ^6.0.3
+        version: 6.0.3
 
 packages:
 
@@ -1535,8 +1535,8 @@ packages:
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
+  typescript@6.0.3:
+    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -2919,7 +2919,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typescript@5.9.3: {}
+  typescript@6.0.3: {}
 
   uc.micro@2.1.0: {}
 
