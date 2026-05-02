@@ -60,109 +60,33 @@ function resolveStoragePath(): string {
   return resolved;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// CodeEngine 数据库迁移 - 类型定义
+// ═══════════════════════════════════════════════════════════════
+//
+// 什么是数据库迁移？
+// ─────────────────
+// 当你修改数据库表结构（比如新增字段、新表、改字段类型）时，
+// 老用户安装的版本已经有数据了，不能直接删表重建。
+// 迁移系统就是安全地"升级"老数据库到新结构的工具。
+//
+// 工作方式是：
+//   1. 每次修改数据库结构时，写一个"迁移文件"（比如 002_add_column.ts）
+//   2. 迁移文件告诉系统"怎么升"（up）和"怎么降"（down）
+//   3. 系统启动时检查已执行的迁移，自动运行未执行的迁移
+//   4. 记录版本号，不会重复执行
+//
+// 每个迁移文件 = 一个版本号 = 一组 SQL 语句
+// 版本号从 1 开始，依次递增
+// ─── 导入迁移系统 ───
+import { migrations } from './migrations/types.js';
+import { runMigrations, getCurrentDbVersion, getMigrationList } from './migrations/index.js';
+import migration001 from './migrations/001_initial.js';
+
+// 注册初始迁移（当前完整 DDL）
+migrations.push(migration001);
+
 // ─── Schema 版本 ───
-
-const SCHEMA_VERSION = 1;
-
-// ─── 完整 DDL ───
-
-const SCHEMA_SQL = `
--- 版本表
-CREATE TABLE IF NOT EXISTS schema_migrations (
-  version INTEGER PRIMARY KEY,
-  applied_at INTEGER NOT NULL
-);
-
--- 会话表
-CREATE TABLE IF NOT EXISTS sessions (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL DEFAULT '',
-  provider_id TEXT NOT NULL DEFAULT '',
-  model TEXT NOT NULL DEFAULT '',
-  message_count INTEGER NOT NULL DEFAULT 0,
-  tools TEXT NOT NULL DEFAULT '[]',
-  permission_entries TEXT NOT NULL DEFAULT '[]',
-  settings TEXT NOT NULL DEFAULT '{}',
-  current_checkpoint TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-
--- 消息表（按会话分组，有序）
-CREATE TABLE IF NOT EXISTS messages (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  role TEXT NOT NULL,
-  content TEXT NOT NULL,
-  timestamp INTEGER NOT NULL,
-  tool_calls TEXT,
-  tool_results TEXT,
-  FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
-);
-
--- 技能表
-CREATE TABLE IF NOT EXISTS skills (
-  name TEXT PRIMARY KEY,
-  category TEXT,
-  path TEXT NOT NULL,
-  content TEXT NOT NULL,
-  context TEXT NOT NULL DEFAULT '',
-  files TEXT DEFAULT '[]',
-  variables TEXT DEFAULT '[]',
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-
--- 任务表
-CREATE TABLE IF NOT EXISTS tasks (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT NOT NULL DEFAULT '',
-  status TEXT NOT NULL DEFAULT 'pending',
-  commands TEXT NOT NULL DEFAULT '[]',
-  files TEXT NOT NULL DEFAULT '[]',
-  expected_files TEXT DEFAULT '[]',
-  dependencies TEXT NOT NULL DEFAULT '[]',
-  permission TEXT,
-  requires_approval INTEGER DEFAULT 0,
-  estimated_cost REAL,
-  estimated_time INTEGER,
-  result TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL
-);
-
--- 检查点表
-CREATE TABLE IF NOT EXISTS checkpoints (
-  id TEXT PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  message_ids TEXT NOT NULL DEFAULT '[]',
-  cwd TEXT NOT NULL DEFAULT '',
-  files_snapshot TEXT NOT NULL DEFAULT '[]',
-  git_status TEXT,
-  created_at INTEGER NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
-);
-
--- 对话表（跨会话聚合）
-CREATE TABLE IF NOT EXISTS conversations (
-  id TEXT PRIMARY KEY,
-  title TEXT NOT NULL DEFAULT '',
-  agent_id TEXT,
-  session_id TEXT,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
-);
-
--- 索引
-CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, timestamp);
-CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON checkpoints(session_id);
-CREATE INDEX IF NOT EXISTS idx_skills_category ON skills(category);
-CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC);
-`;
 
 // ─── 数据库实例 ───
 
@@ -187,14 +111,26 @@ export function getDb(): StorageDB {
   return _db;
 }
 
+// ─── 数据库初始化 ───
+//
+// 使用迁移系统创建/升级数据库。
+// 第一次启动：执行 v1 迁移（创建所有表）
+// 后续启动：检查版本，只执行新增的迁移（比如 v2、v3...）
 function initializeDatabase(db: StorageDB): void {
-  // 创建所有表
-  db.exec(SCHEMA_SQL);
-
-  // 检查版本
-  const row = db.prepare('SELECT version FROM schema_migrations WHERE version = ?').get(SCHEMA_VERSION) as { version: number } | undefined;
-  if (!row) {
-    db.prepare('INSERT INTO schema_migrations (version, applied_at) VALUES (?, ?)').run(SCHEMA_VERSION, Date.now());
+  try {
+    const result = runMigrations(db);
+    if (result.upgraded) {
+      console.log(`[storage] 数据库已升级: v${result.fromVersion} → v${result.toVersion}`);
+      for (const a of result.applied) {
+        console.log(`[storage]   → v${a.version}: ${a.name} (${a.duration}ms)`);
+      }
+    } else {
+      console.log(`[storage] 数据库已是最新版本 v${result.toVersion}`);
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[storage] 数据库迁移失败: ${msg}`);
+    throw err;
   }
 }
 
@@ -770,6 +706,29 @@ export function sanitizeForExport(messages: Message[]): string {
     .map(m => `[${m.role}] ${sanitizeText(m.content)}`)
     .join('\n\n---\n\n');
 }
+
+// ─── 数据库迁移导出 ───
+
+// 获取当前数据库版本（供 CLI 使用）
+export function getDbVersion(): number {
+  if (_db) return getCurrentDbVersion(_db);
+  // 数据库未初始化时返回当前 schema 版本
+  return 1;
+}
+
+// 获取迁移列表信息（供 CLI 使用）
+export function listMigrations(): Array<{ version: number; name: string; executed: boolean }> {
+  if (_db) return getMigrationList(_db);
+  // 数据库未初始化时返回当前已注册的迁移
+  return migrations.map(m => ({
+    version: m.version,
+    name: m.name,
+    executed: false,
+  }));
+}
+
+// 获取当前 schema 版本
+export const SCHEMA_VERSION = 1;
 
 // ─── 默认导出 ───
 

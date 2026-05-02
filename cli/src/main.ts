@@ -11,6 +11,7 @@
  *   codeengine checkpoint create    创建检查点
  *   codeengine skill list           列出所有技能
  *   codeengine config list          显示配置
+ *   codeengine db version           查看数据库版本和迁移状态
  *   codeengine run                  交互式对话模式
  */
 
@@ -95,6 +96,10 @@ function showHelp(): void {
   console.log(`  ${CYAN}config get <key>${RESET}   获取配置值`);
   console.log(`  ${CYAN}config set <key> <value>${RESET}  设置配置值`);
   console.log('');
+  console.log(`${BOLD}数据库:${RESET}`);
+  console.log(`  ${CYAN}db version${RESET}         查看数据库版本`);
+  console.log(`  ${CYAN}db migrations${RESET}      列出所有迁移`);
+  console.log('');
   console.log(`  ${GREEN}help${RESET}               显示此帮助信息`);
   console.log('');
 }
@@ -163,6 +168,13 @@ if (command === '--version' || command === '-v') {
     await runCommand('config', args.slice(1));
   } catch (err) {
     console.error(`\n${RED}[ERROR]${RESET} 配置命令失败: ${(err as Error).message}`);
+    process.exit(1);
+  }
+} else if (command === 'db') {
+  try {
+    await runCommand('db', args.slice(1));
+  } catch (err) {
+    console.error(`\n${RED}[ERROR]${RESET} 数据库命令失败: ${(err as Error).message}`);
     process.exit(1);
   }
 } else {
