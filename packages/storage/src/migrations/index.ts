@@ -27,11 +27,22 @@
 //   已注册的迁移: [v1, v2, v3]
 //   没有新迁移需要执行 → 直接跳过
 
-import type { Database } from 'better-sqlite3';
 import { migrations, CURRENT_SCHEMA_VERSION } from './types.js';
 
+// 迁移系统使用的数据库接口（与 StorageDB 兼容）
+interface MigratorDB {
+  exec(sql: string): void;
+  prepare(sql: string): {
+    all(...params: any[]): any[];
+    get(...params: any[]): any;
+    run(...params: any[]): { changes: number; lastId: number };
+  };
+  close(): void;
+  transaction<T extends (...args: any[]) => any>(fn: T): T;
+}
+
 // ─── 获取当前数据库版本 ───
-function getCurrentVersion(db: Database): number {
+function getCurrentVersion(db: MigratorDB): number {
   try {
     // 先检查表是否存在
     const tableExists = db.prepare(
@@ -61,7 +72,7 @@ function getAvailableMigrations(): typeof migrations {
 //
 // 这是核心函数，在数据库初始化时调用。
 // 它会按版本号从小到大执行所有未运行的迁移。
-export function runMigrations(db: Database): {
+export function runMigrations(db: MigratorDB): {
   upgraded: boolean;
   fromVersion: number;
   toVersion: number;
@@ -126,7 +137,7 @@ export function runMigrations(db: Database): {
 }
 
 // ─── 获取迁移列表信息（供 CLI 使用） ───
-export function getMigrationList(db: Database): Array<{
+export function getMigrationList(db: MigratorDB): Array<{
   version: number;
   name: string;
   executed: boolean;
@@ -140,6 +151,6 @@ export function getMigrationList(db: Database): Array<{
 }
 
 // ─── 获取当前版本 ───
-export function getCurrentDbVersion(db: Database): number {
+export function getCurrentDbVersion(db: MigratorDB): number {
   return getCurrentVersion(db);
 }

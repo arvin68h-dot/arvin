@@ -19,6 +19,10 @@
     "@types/node": "^22.0.0",
     "better-sqlite3": "^12.9.0",
     "eslint": "^9.0.0",
+    "markdown-it": "^14.1.1",
+    "markdown-pdf": "^11.0.0",
+    "pdfkit": "^0.18.0",
+    "pdfmake": "^0.3.7",
     "tsx": "^4.19.0",
     "typescript": "^5.8.0",
     "vitest": "^3.1.0"

@@ -11,7 +11,7 @@
 //   3. 在 002 中只写"增量变更"（比如 ALTER TABLE）
 //   4. 在 migrations/index.ts 中注册它
 
-import type { Database } from './types.js';
+import type { DB } from './types.js';
 
 // export 必须叫 default，迁移调度器用 import() 加载
 export default {
@@ -23,7 +23,7 @@ export default {
 
   // 升级函数：把空数据库升级到 v1
   // 参数 db 是 better-sqlite3 的数据库实例
-  up: (db: Database) => {
+  up: (db: DB) => {
     const now = Date.now();
 
     // 1. 先创建版本表（其他表依赖它检查版本号）
@@ -160,7 +160,7 @@ export default {
 
   // 降级函数：从 v1 降级到空状态
   // 注意：降级会删除所有数据，请谨慎使用！
-  down: (db: Database) => {
+  down: (db: DB) => {
     db.exec('DROP TABLE IF EXISTS conversations');
     db.exec('DROP TABLE IF EXISTS checkpoints');
     db.exec('DROP TABLE IF EXISTS tasks');

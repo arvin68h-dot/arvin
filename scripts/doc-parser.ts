@@ -130,19 +130,39 @@ function analyzeSchemaChange(lines: string[]): string[] {
  */
 function analyzeCliChange(lines: string[]): string[] {
   const findings: string[] = [];
-  const commandPatterns = [
-    /command\(\s*['"](\w[\w-]*)['"]/,
-    /addCommand\(\s*['"](\w[\w-]*)['"]/,
-    /\.command\(\s*['"](\w[\w-]*)['"]/,
-    /export\s+async\s+function\s+run\(\),
-    /console\.log\(`\s*(?:.+?\s+)?(?:用法|命令|参数|例子|示例):/,
-  ];
+
   for (const line of lines) {
-    for (const pattern of commandPatterns) {
-      const m = line.match(pattern);
-      if (m && m[1] && !m[1].startsWith('//')) {
-        findings.push(`CLI 命令变更: ${m[1]}`);
-      }
+    // 检测 command('name') 模式
+    const m1 = line.match(/command\(\s*['"](\w[\w-]*)['"]/);
+    if (m1 && !m1[1].startsWith('//')) {
+      findings.push(`CLI 命令变更: ${m1[1]}`);
+      continue;
+    }
+
+    // 检测 addCommand('name') 模式
+    const m2 = line.match(/addCommand\(\s*['"](\w[\w-]*)['"]/);
+    if (m2 && !m2[1].startsWith('//')) {
+      findings.push(`CLI 命令变更: ${m2[1]}`);
+      continue;
+    }
+
+    // 检测 .command('name') 模式
+    const m3 = line.match(/\.command\(\s*['"](\w[\w-]*)['"]/);
+    if (m3 && !m3[1].startsWith('//')) {
+      findings.push(`CLI 命令变更: ${m3[1]}`);
+      continue;
+    }
+
+    // 检测 export async function run() 模式（用字符串匹配避免正则问题）
+    if (line.includes('export') && line.includes('async') && line.includes('function') && line.includes('run()')) {
+      findings.push('CLI 命令变更: run');
+      continue;
+    }
+
+    // 检测 help 文本输出
+    const m4 = line.match(/console\.log\(`\s*(?:.+?\s+)?(?:用法|命令|参数|例子|示例):/);
+    if (m4) {
+      findings.push('CLI 帮助文本变更');
     }
   }
   return findings;
@@ -153,20 +173,39 @@ function analyzeCliChange(lines: string[]): string[] {
  */
 function analyzeConfigChange(lines: string[]): string[] {
   const findings: string[] = [];
-  const configPatterns = [
-    /['"]?ENV['"]?\s*[=:]?\s*['"](\w+)/,
-    /['"]?CONFIG['"]?\s*[=:]?\s*['"](\w+)/,
-    /['"]?settings['"]?\s*[.:]\s*\{/,
-    /addSetting\(/,
-    /process\.env\.(\w+)/,
-    /['"]codengine_email_host['"]/,
-  ];
+
   for (const line of lines) {
-    for (const pattern of configPatterns) {
-      const m = line.match(pattern);
-      if (m && m[1]) {
-        findings.push(`配置变更: ${m[1]}`);
-      }
+    const m1 = line.match(/['"]?ENV['"]?\s*[=:]\s*['"](\w+)/);
+    if (m1 && m1[1]) {
+      findings.push(`配置变更: ${m1[1]}`);
+      continue;
+    }
+
+    const m2 = line.match(/['"]?CONFIG['"]?\s*[=:]\s*['"](\w+)/);
+    if (m2 && m2[1]) {
+      findings.push(`配置变更: ${m2[1]}`);
+      continue;
+    }
+
+    const m3 = line.match(/['"]?settings['"]?\s*[.:]\s*\{/);
+    if (m3) {
+      findings.push('配置变更: settings 块');
+      continue;
+    }
+
+    if (line.includes('addSetting(')) {
+      findings.push('配置变更: addSetting 调用');
+      continue;
+    }
+
+    const m4 = line.match(/process\.env\.(\w+)/);
+    if (m4) {
+      findings.push(`配置变更: ${m4[1]}`);
+      continue;
+    }
+
+    if (line.includes('codengine_email_host')) {
+      findings.push('配置变更: codengine_email_host');
     }
   }
   return findings;
@@ -177,17 +216,23 @@ function analyzeConfigChange(lines: string[]): string[] {
  */
 function analyzeVersionChange(lines: string[]): string[] {
   const findings: string[] = [];
-  const versionPatterns = [
-    /['"]?version['"]?\s*:\s*['"](\d+\.\d+\.\d+)['"]/,
-    /==\s*v?(\d+\.\d+\.\d+)\s*==/,
-    /# v?(\d+\.\d+\.\d+)/,
-  ];
+
   for (const line of lines) {
-    for (const pattern of versionPatterns) {
-      const m = line.match(pattern);
-      if (m && m[1]) {
-        findings.push(`版本变更: ${m[1]}`);
-      }
+    const m1 = line.match(/['"]?version['"]?\s*:\s*['"](\d+\.\d+\.\d+)['"]/);
+    if (m1 && m1[1]) {
+      findings.push(`版本变更: ${m1[1]}`);
+      continue;
+    }
+
+    const m2 = line.match(/==\s*v?(\d+\.\d+\.\d+)\s*==/);
+    if (m2 && m2[1]) {
+      findings.push(`版本变更: ${m2[1]}`);
+      continue;
+    }
+
+    const m3 = line.match(/# v?(\d+\.\d+\.\d+)/);
+    if (m3 && m3[1]) {
+      findings.push(`版本变更: ${m3[1]}`);
     }
   }
   return findings;
@@ -295,6 +340,5 @@ function main(): void {
   }
 }
 
-if (require.main === module) {
-  main();
-}
+// CLI 入口
+main();

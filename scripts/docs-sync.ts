@@ -283,6 +283,10 @@ async function runSync(dryRun: boolean, autoCommit: boolean): Promise<void> {
               const version = verMatch ? verMatch[1] : 'NEXT';
               gitCommit(`docs: 同步操作手册 v${version} (${date})`);
             }
+
+            // 生成 PDF
+            console.log('\n[docs-sync] 正在生成 PDF...');
+            generatePdf(manualPath, autoCommit);
           }
         }
       } else {
@@ -296,6 +300,34 @@ async function runSync(dryRun: boolean, autoCommit: boolean): Promise<void> {
   if (stderr && dryRun) {
     console.log(`\n[docs-sync] stderr: ${stderr}`);
   }
+}
+
+// ─── PDF 生成 ───
+
+function generatePdf(manualPath: string, autoCommit: boolean): void {
+  const outputDir = 'docs';
+  const date = new Date().toISOString().split('T')[0];
+  const fileName = `操作手册-${date}.pdf`;
+  const outputPath = path.join(outputDir, fileName);
+
+  const proc = spawn(
+    'node',
+    [path.resolve('scripts/md-to-pdf.js'), path.resolve(manualPath), path.resolve(outputPath)],
+    { stdio: ['pipe', 'pipe', 'pipe'] }
+  );
+
+  proc.on('close', (code) => {
+    if (code === 0) {
+      console.log(`[docs-sync] PDF 已生成: ${outputPath}`);
+      if (autoCommit) {
+        try {
+          execSync(`git add "${outputPath}"`, { stdio: 'inherit' });
+        } catch {}
+      }
+    } else {
+      console.warn(`[docs-sync] PDF 生成失败 (exit ${code})`);
+    }
+  });
 }
 
 // ─── 主入口 ───

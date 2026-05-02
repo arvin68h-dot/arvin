@@ -18,7 +18,18 @@
 // 版本号从 1 开始，依次递增
 
 // ─── 导入类型 ───
-import type { Database } from 'better-sqlite3';
+
+// 迁移系统使用的最小数据库接口（all methods used by migrations）
+interface DB {
+  prepare(sql: string): {
+    all(...params: any[]): any[];
+    get(...params: any[]): any;
+    run(...params: any[]): { changes: number; lastId: number };
+  };
+  exec(sql: string): void;
+  close(): void;
+  transaction<T extends (...args: any[]) => any>(fn: T): T;
+}
 
 // ─── 迁移文件导出格式 ───
 //
@@ -43,7 +54,7 @@ import type { Database } from 'better-sqlite3';
 //
 // 当前数据库结构的版本号。
 // 每次修改数据库表结构时，递增这个数字，并新增一个迁移文件。
-export const CURRENT_SCHEMA_VERSION = 1; // ⚡ 每次升级时递增！
+export const CURRENT_SCHEMA_VERSION = 2; // ⚡ 每次升级时递增！
 
 // ─── 迁移类型 ───
 //
@@ -55,12 +66,12 @@ export const CURRENT_SCHEMA_VERSION = 1; // ⚡ 每次升级时递增！
 export type Migration = {
   version: number;
   name: string;
-  up: (db: Database) => void;
-  down?: (db: Database) => void;
+  up: (db: DB) => void;
+  down?: (db: DB) => void;
 };
 
-// ─── 导出 Database 类型供迁移文件使用 ───
-export type { Database };
+// ─── 导出 DB 类型供迁移文件使用 ───
+export type { DB };
 
 // ─── 迁移注册表 ───
 //
@@ -71,3 +82,13 @@ export type { Database };
 // 重要：migration001 是当前的完整 DDL，
 //       migration002 及以后是增量变更。
 export const migrations: Migration[] = [];
+
+// ─── 导入当前所有迁移文件 ───
+
+// v1: 初始建表（完整 DDL）
+import migration001 from './001_initial.js';
+migrations.push(migration001);
+
+// v2: 增量变更（审计日志 + 消息对话分组）
+import migration002 from './002_add_audit.js';
+migrations.push(migration002);

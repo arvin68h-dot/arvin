@@ -2,6 +2,9 @@
 // CodeEngine Storage — SQLite 持久化存储层
 // ========================
 
+// 动态导入 better-sqlite3（ESM 兼容）
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
 const Database = require('better-sqlite3') as {
   new (path: string, options?: { readonly?: boolean; timeout?: number; wal?: boolean; mmapSize?: number }): StorageDB;
 };
@@ -81,10 +84,8 @@ function resolveStoragePath(): string {
 // ─── 导入迁移系统 ───
 import { migrations } from './migrations/types.js';
 import { runMigrations, getCurrentDbVersion, getMigrationList } from './migrations/index.js';
-import migration001 from './migrations/001_initial.js';
 
-// 注册初始迁移（当前完整 DDL）
-migrations.push(migration001);
+// 迁移文件在 types.ts 中已自动注册
 
 // ─── Schema 版本 ───
 
