@@ -18,7 +18,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "better-sqlite3": "^12.9.0",
-    "eslint": "^9.0.0",
+    "eslint": "^10.3.0",
     "markdown-it": "^14.1.1",
     "markdown-pdf": "^11.0.0",
     "pdfkit": "^0.18.0",
