@@ -39,10 +39,23 @@ import {
 // ─── 数据库路径解析 ───
 
 function resolveStoragePath(): string {
-  const resolved = STORAGE_PATH.replace('~', process.env.HOME || process.env.USERPROFILE || '');
-  const dir = path.dirname(resolved);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+  // 测试时支持 CODEENGINE_DATA_DIR 环境变量覆盖默认路径
+  let resolved: string;
+  if (process.env.CODEENGINE_DATA_DIR) {
+    resolved = process.env.CODEENGINE_DATA_DIR;
+    // 对于内存数据库，不需要创建目录
+    if (resolved !== ':memory:' && !resolved.startsWith(':memory:')) {
+      const dir = path.dirname(resolved);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+    }
+  } else {
+    resolved = STORAGE_PATH.replace('~', process.env.HOME || process.env.USERPROFILE || '');
+    const dir = path.dirname(resolved);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
   }
   return resolved;
 }
@@ -131,12 +144,24 @@ CREATE TABLE IF NOT EXISTS checkpoints (
   FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
 );
 
+-- 对话表（跨会话聚合）
+CREATE TABLE IF NOT EXISTS conversations (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL DEFAULT '',
+  agent_id TEXT,
+  session_id TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
+);
+
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, timestamp);
 CREATE INDEX IF NOT EXISTS idx_sessions_updated ON sessions(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
 CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON checkpoints(session_id);
 CREATE INDEX IF NOT EXISTS idx_skills_category ON skills(category);
+CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC);
 `;
 
 // ─── 数据库实例 ───
@@ -146,13 +171,18 @@ let _dbPath = '';
 
 export function getDb(): StorageDB {
   if (!_db) {
-    _dbPath = resolveStoragePath();
-    _db = new Database(_dbPath, {
-      wal: true,         // WAL 模式提升并发性能
-      mmapSize: 1024 * 1024 * 256, // 256MB 内存映射
-      timeout: 5000,     // 5秒锁等待
-    });
-    initializeDatabase(_db);
+    try {
+      _dbPath = resolveStoragePath();
+      _db = new Database(_dbPath, {
+        wal: true,         // WAL 模式提升并发性能
+        mmapSize: 1024 * 1024 * 256, // 256MB 内存映射
+        timeout: 5000,     // 5秒锁等待
+      });
+      initializeDatabase(_db);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to initialize storage: ${msg}`);
+    }
   }
   return _db;
 }
@@ -175,9 +205,40 @@ export function closeDb(): void {
   }
 }
 
+// ─── 优雅退出 ───
+
+process.on('SIGTERM', () => {
+  closeDb();
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  closeDb();
+  process.exit(0);
+});
+
+// ─── SQL 字段白名单校验 ───
+
+const FIELD_WHITELISTS: Record<string, Set<string>> = {
+  sessions: new Set(['title', 'provider_id', 'model', 'tools', 'permission_entries', 'settings', 'current_checkpoint', 'message_count', 'updated_at']),
+  skills: new Set(['category', 'path', 'content', 'context', 'files', 'variables', 'updated_at']),
+  tasks: new Set(['name', 'status', 'commands', 'files', 'expected_files', 'dependencies', 'parent_task_id', 'updated_at']),
+  conversations: new Set(['title', 'updated_at']),
+};
+
+function validateFields(table: string, setStrings: string[]): string[] {
+  const allowed = FIELD_WHITELISTS[table];
+  if (!allowed) return setStrings;
+  return setStrings.filter(s => {
+    const fieldName = s.split(' ')[0]; // 提取 'title = @title' -> 'title'
+    return allowed.has(fieldName);
+  });
+}
+
 // ─── JSON 辅助函数 ───
 
 function jsonSerialize(value: unknown): string {
+  if (value === undefined || value === null) return '[]';
   return JSON.stringify(value);
 }
 
@@ -193,9 +254,7 @@ function jsonParse<T = unknown>(value: string | null | undefined): T {
 // ─── Session CRUD ───
 
 export class SessionStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(data: Omit<Session, 'id' | 'message_count' | 'created_at' | 'updated_at'>): Session {
     const now = Date.now();
@@ -250,8 +309,9 @@ export class SessionStore {
     sets.push('updated_at = @now');
     params.now = Date.now();
 
-    if (sets.length > 1) {
-      this.db.prepare(`UPDATE sessions SET ${sets.join(', ')} WHERE id = @id`).run(params);
+    const safeSets = validateFields('sessions', sets);
+    if (safeSets.length > 1) {
+      this.db.prepare(`UPDATE sessions SET ${safeSets.join(', ')} WHERE id = @id`).run(params);
     }
 
     return this.get(id);
@@ -293,9 +353,7 @@ export class SessionStore {
 // ─── Message CRUD ───
 
 export class MessageStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(message: Omit<Message, 'id'>, sessionId: string): Message {
     const id = crypto.randomUUID();
@@ -317,7 +375,7 @@ export class MessageStore {
     this.db.prepare('UPDATE sessions SET message_count = message_count + 1, updated_at = ? WHERE id = ?')
       .run(Date.now(), sessionId);
 
-    return { ...rest, id };
+    return { ...rest, id, toolCalls, toolResults };
   }
 
   getBySession(sessionId: string, limit = 100, before?: number): Message[] {
@@ -388,9 +446,7 @@ export class MessageStore {
 // ─── Skill CRUD ───
 
 export class SkillStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(skill: Omit<Skill, 'created_at' | 'updated_at'>): Skill {
     const now = Date.now();
@@ -433,7 +489,8 @@ export class SkillStore {
     if (updates.variables !== undefined) { sets.push('variables = @variables'); params.variables = jsonSerialize(updates.variables); }
     sets.push('updated_at = @now');
 
-    this.db.prepare(`UPDATE skills SET ${sets.join(', ')} WHERE name = @name`).run(params);
+    const safeSets = validateFields('skills', sets);
+    this.db.prepare(`UPDATE skills SET ${safeSets.join(', ')} WHERE name = @name`).run(params);
     return this.get(name);
   }
 
@@ -458,9 +515,7 @@ export class SkillStore {
 // ─── Task CRUD ───
 
 export class TaskStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(task: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Task {
     const now = Date.now();
@@ -498,7 +553,9 @@ export class TaskStore {
     const sql = status
       ? 'SELECT * FROM tasks WHERE status = ? ORDER BY created_at DESC LIMIT ?'
       : 'SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?';
-    const rows = this.db.prepare(sql).all(status ?? '', limit) as Record<string, unknown>[];
+    const rows = this.db.prepare(sql).all(
+      status === undefined ? limit : [status, limit]
+    ) as Record<string, unknown>[];
     return rows.map(r => this.deserialize(r));
   }
 
@@ -515,7 +572,8 @@ export class TaskStore {
     if (updates.parentTaskId !== undefined) { sets.push('parent_task_id = @pid'); params.pid = updates.parentTaskId; }
     sets.push('updated_at = @now');
 
-    this.db.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = @id`).run(params);
+    const safeSets = validateFields('tasks', sets);
+    this.db.prepare(`UPDATE tasks SET ${safeSets.join(', ')} WHERE id = @id`).run(params);
     return this.get(id);
   }
 
@@ -547,9 +605,7 @@ export class TaskStore {
 // ─── Checkpoint CRUD ───
 
 export class CheckpointStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(data: Omit<Checkpoint, 'id' | 'createdAt'>): Checkpoint {
     const id = crypto.randomUUID();
@@ -559,7 +615,7 @@ export class CheckpointStore {
     `).run({
       id,
       session_id: data.sessionId,
-      msg_ids: jsonSerialize(data.messageIds),
+      msg_ids: jsonSerialize(data.messageIds ?? []),
       cwd: data.cwd,
       files: jsonSerialize(data.filesSnapshot),
       git_status: data.gitStatus ?? null,
@@ -606,9 +662,7 @@ export class CheckpointStore {
 // ─── Conversation CRUD ───
 
 export class ConversationStore {
-  private db: StorageDB;
-
-  constructor() { this.db = getDb(); }
+  private get db(): StorageDB { return getDb(); }
 
   create(conversation: Omit<Conversation, 'id' | 'createdAt' | 'updatedAt'>): Conversation {
     const now = Date.now();
@@ -671,8 +725,9 @@ export class ConversationStore {
     const params: Record<string, unknown> = { id, now: Date.now() };
     if (updates.title !== undefined) { sets.push('title = @title'); params.title = updates.title; }
     sets.push('updated_at = @now');
-    if (sets.length > 1) {
-      this.db.prepare(`UPDATE conversations SET ${sets.join(', ')} WHERE id = @id`).run(params);
+    const safeSets = validateFields('conversations', sets);
+    if (safeSets.length > 1) {
+      this.db.prepare(`UPDATE conversations SET ${safeSets.join(', ')} WHERE id = @id`).run(params);
     }
     return this.get(id);
   }
