@@ -306,24 +306,18 @@ async function runSync(dryRun: boolean, autoCommit: boolean): Promise<void> {
 
 function generatePdf(manualPath: string, autoCommit: boolean): void {
   const outputDir = 'docs';
-  const date = new Date().toISOString().split('T')[0];
-  const fileName = `操作手册-${date}.pdf`;
-  const outputPath = path.join(outputDir, fileName);
+  const outputPath = path.join(outputDir, '操作手册.pdf');
 
   const proc = spawn(
-    'node',
-    [path.resolve('scripts/md-to-pdf.js'), path.resolve(manualPath), path.resolve(outputPath)],
+    'python3',
+    [path.resolve('scripts/md-to-pdf.py'), path.resolve(manualPath), path.resolve(outputPath)],
     { stdio: ['pipe', 'pipe', 'pipe'] }
   );
 
   proc.on('close', (code) => {
     if (code === 0) {
       console.log(`[docs-sync] PDF 已生成: ${outputPath}`);
-      if (autoCommit) {
-        try {
-          execSync(`git add "${outputPath}"`, { stdio: 'inherit' });
-        } catch {}
-      }
+      // 注意：PDF 被 .gitignore 忽略，是生成的产物，不纳入版本控制
     } else {
       console.warn(`[docs-sync] PDF 生成失败 (exit ${code})`);
     }
