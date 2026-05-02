@@ -10,7 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@codeengine/core": "workspace:*"
+    "@codeengine/core": "workspace:*",
+    "better-sqlite3": "^12.9.0"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
