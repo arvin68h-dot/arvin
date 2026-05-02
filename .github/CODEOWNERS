@@ -1,0 +1,35 @@
+# CodeEngine Code Owners
+# This file specifies who must review PRs affecting specific parts of the codebase.
+
+# Core engine
+/packages/core/ @codeengine-team
+
+# CLI
+/cli/ @codeengine-team
+
+# Language engines
+/packages/engine/ @codeengine-team
+
+# Tools
+/packages/tool/ @codeengine-team
+
+# Storage
+/packages/storage/ @codeengine-team
+
+# Checkpoints
+/packages/checkpoint/ @codeengine-team
+
+# Skills
+/packages/skill/ @codeengine-team
+
+# Tests
+/tests/ @codeengine-team
+
+# CI/CD
+.github/workflows/ @codeengine-team
+
+# Documentation
+/docs/ @codeengine-team
+
+# Everything else
+* @codeengine-team
