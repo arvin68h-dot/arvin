@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "downlevelIteration": true,
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@codeengine/core": ["./packages/core/index.ts"],
+      "@codeengine/tool": ["./packages/tool/index.ts"],
+      "@codeengine/diff": ["./packages/diff/index.ts"],
+      "@codeengine/engine": ["./packages/engine/index.ts"],
+      "@codeengine/storage": ["./packages/storage/index.ts"],
+      "@codeengine/lsp": ["./packages/lsp/index.ts"],
+      "@codeengine/checkpoint": ["./packages/checkpoint/index.ts"],
+      "@codeengine/skill": ["./packages/skill/index.ts"],
+      "@codeengine/mcp": ["./packages/mcp/index.ts"],
+      "@codeengine/tasks": ["./packages/tasks/src/index.ts"]
+    },
+    "baseUrl": "."
+  }
+}

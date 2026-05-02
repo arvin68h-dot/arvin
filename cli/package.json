@@ -1,0 +1,27 @@
+{
+  "name": "@codeengine/cli",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.ts",
+  "types": "src/main.ts",
+  "bin": {
+    "codeengine": "src/main.ts"
+  },
+  "scripts": {
+    "build": "tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codeengine/core": "workspace:*",
+    "@codeengine/tool": "workspace:*",
+    "@codeengine/engine": "workspace:*",
+    "@codeengine/storage": "workspace:*",
+    "@codeengine/checkpoint": "workspace:*",
+    "@codeengine/skill": "workspace:*",
+    "@codeengine/tasks": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/node": "^22.0.0"
+  }
+}

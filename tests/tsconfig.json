@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "composite": true,
+    "types": ["vitest/globals", "node"]
+  },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/engine" },
+    { "path": "./packages/storage" },
+    { "path": "./packages/tool" }
+  ],
+  "include": ["**/*.ts"],
+  "exclude": ["dist", "node_modules"]
+}

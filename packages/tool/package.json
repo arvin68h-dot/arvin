@@ -1,0 +1,21 @@
+{
+  "name": "@codeengine/tool",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc --build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@codeengine/core": "workspace:*",
+    "@types/uuid": "^11.0.0",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0"
+  }
+}

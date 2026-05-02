@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true,
+    "downlevelIteration": true
+  },
+  "references": [
+    { "path": "../packages/core" },
+    { "path": "../packages/tool" },
+    { "path": "../packages/engine" },
+    { "path": "../packages/storage" }
+  ],
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

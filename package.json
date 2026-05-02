@@ -1,0 +1,25 @@
+{
+  "name": "codeengine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "全场景 AI 编码引擎 — 对标 OpenCode/Cline/Roo Code 的 AI 编码 CLI 工具",
+  "scripts": {
+    "build": "tsc --build",
+    "build:clean": "tsc --build --clean",
+    "dev": "tsc --build --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint packages/ cli/",
+    "cli": "tsx cli/src/main.ts"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "tsx": "^4.19.0",
+    "vitest": "^3.1.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0"
+  }
+}

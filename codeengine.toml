@@ -1,0 +1,56 @@
+# CodeEngine 运行时配置模板
+# 复制为 codeengine.toml 后修改
+
+[general]
+# 日志级别: trace, debug, info, warn, error
+log_level = "info"
+# 日志输出到文件（true/false）
+log_to_file = true
+# 日志文件目录
+log_dir = "~/.codeengine/logs"
+# 数据目录（存储会话、缓存等）
+data_dir = "~/.codeengine/data"
+
+[agent]
+# Agent 最大循环次数（防止无限循环）
+max_loop_count = 20
+# 会话消息最大保留数（超过后触发压缩）
+max_messages = 50
+# 上下文 token 上限
+max_context_tokens = 100000
+
+[permission]
+# 审批策略: always_confirm, auto_low, auto_all
+strategy = "auto_low"
+
+[provider]
+# 默认 LLM 提供商
+default = "custom"
+[provider.openai]
+api_key = ""
+base_url = "https://api.openai.com/v1"
+default_model = "gpt-4o"
+[provider.anthropic]
+api_key = ""
+base_url = "https://api.anthropic.com"
+default_model = "claude-sonnet-4-20250514"
+[provider.custom]
+api_key = ""
+base_url = "http://localhost:11434/v1"
+default_model = "qwen3.6-35b"
+
+[lsp]
+# TypeScript 语言服务器路径
+typescript_server = ""
+# Go 语言服务器路径
+go_server = ""
+# Rust 语言服务器路径
+rust_server = ""
+# C/C++ 语言服务器路径
+cpp_server = ""
+
+[engines]
+# C++ 编译器路径（自动检测，可覆盖）
+cpp_compiler = ""
+# Python 解释器路径
+python_interpreter = "python3"

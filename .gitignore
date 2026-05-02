@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+*.tsbuildinfo
+*.js
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CodeEngine internal
+.codeengine/
+.codeengine.backup/
+*.bak
+
+# Logs
+*.log
+
+# Test results
+tests/e2e/results/
+
+# PDF docs
+docs/*.pdf
+
+# Local config
+.env
+.env.*
+codeengine.local.toml
